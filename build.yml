@@ -1,0 +1,36 @@
+name: Build APK and Website
+on: [workflow_dispatch, push]
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: |
+          unzip -q AwaisTailorMaster-android-project.zip
+          [ -f firebase-config.js ] && cp firebase-config.js AwaisTailorMaster/www/firebase-config.js || true
+          cd AwaisTailorMaster
+          bash build-android.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AwaisTailorRegister-apk
+          path: AwaisTailorMaster/android/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: AwaisTailorMaster/www
+  website:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
